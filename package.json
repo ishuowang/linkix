@@ -7,13 +7,28 @@
     "dev": "vite",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
     "preview": "vite preview",
-    "test:sites": "node --test tests/sites-worker.test.mjs"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:sites": "node --test tests/sites-worker.test.mjs",
+    "generate:assets": "node scripts/generate-assets.mjs",
+    "qa:compare": "node scripts/compose-design-qa.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/noto-sans-sc": "^5.3.0",
+    "@fontsource-variable/noto-serif-sc": "^5.3.0",
+    "@phosphor-icons/react": "^2.1.10",
     "@vitejs/plugin-react": "5.0.4",
-    "vite": "6.4.2",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "vite": "6.4.2"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "jsdom": "^30.0.0",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.35.3",
+    "vitest": "^4.1.10"
+  }
 }

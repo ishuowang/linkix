@@ -1,0 +1,22 @@
+[Unit]
+Description=Linkix resolver API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/linkix/api
+EnvironmentFile=/etc/linkix/linkix.env
+ExecStart=/opt/linkix/.venv/bin/uvicorn linkix.app:app --host 127.0.0.1 --port 8010 --workers 1
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/tmp
+MemoryMax=512M
+TasksMax=128
+
+[Install]
+WantedBy=multi-user.target
