@@ -153,6 +153,7 @@ python -m pytest api
 - 构建命令：`npm ci && npm run build`
 - 静态输出目录：`dist/client`
 - 环境变量：`VITE_API_BASE_URL=https://你的-api-域名`
+- Vercel 的构建设置已经固化在 [`vercel.json`](vercel.json)
 
 如果前端和 API 共用一个域名，可让 Nginx/Caddy 把 `/api/*` 反向代理到 `127.0.0.1:8010`，并保持 `VITE_API_BASE_URL` 为空。仓库同时保留 Sites 所需的 worker 和打包检查。
 
