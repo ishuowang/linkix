@@ -10,10 +10,21 @@ export default defineConfig({
   },
   server: {
     host: "0.0.0.0",
-    allowedHosts: ["terminal.local"],
+    allowedHosts: ["terminal.local", "localhost", "127.0.0.1"],
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:8010",
+        changeOrigin: false,
+      },
+    },
     warmup: {
       clientFiles: ["./src/main.jsx"],
     },
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/setupTests.js"],
+    include: ["src/**/*.test.{js,jsx}"],
   },
   plugins: [react()],
 });
