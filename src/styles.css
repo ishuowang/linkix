@@ -110,6 +110,7 @@ a {
 
 .platforms {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 9px;
   margin: 12px 0 0;
@@ -124,8 +125,20 @@ a {
   color: #aaa397;
 }
 
-.platform-active {
-  color: var(--body);
+.platforms .platform-available {
+  color: var(--ink);
+}
+
+.platforms .platform-planned {
+  color: var(--placeholder);
+}
+
+.platforms em {
+  margin-left: 3px;
+  font-size: 8px;
+  font-style: normal;
+  letter-spacing: 0;
+  vertical-align: top;
 }
 
 .resolver {

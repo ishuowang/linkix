@@ -28,6 +28,36 @@ DOUYIN_MEDIA_SUFFIXES = (
     "pstatp.com",
 )
 
+MEDIA_SUFFIXES_BY_PROVIDER: dict[str, tuple[str, ...]] = {
+    "douyin": DOUYIN_MEDIA_SUFFIXES,
+    "kuaishou": (
+        "kwimgs.com",
+        "yximgs.com",
+    ),
+    "xiaohongshu": ("xhscdn.com",),
+    "bilibili": (
+        "bilivideo.com",
+        "bilivideo.cn",
+        "hdslb.com",
+    ),
+    "weibo": (
+        "weibocdn.com",
+        "sinaimg.cn",
+    ),
+}
+
+MEDIA_EXACT_HOSTS_BY_PROVIDER: dict[str, frozenset[str]] = {
+    "bilibili": frozenset({"upos-hz-mirrorakam.akamaized.net"}),
+}
+
+PROVIDER_REFERERS = {
+    "douyin": "https://www.douyin.com/",
+    "kuaishou": "https://www.kuaishou.com/",
+    "xiaohongshu": "https://www.xiaohongshu.com/",
+    "bilibili": "https://www.bilibili.com/",
+    "weibo": "https://weibo.com/",
+}
+
 
 def normalize_host(host: str) -> str:
     try:
@@ -38,6 +68,16 @@ def normalize_host(host: str) -> str:
 
 def _matches_suffix(host: str, suffixes: Iterable[str]) -> bool:
     return any(host == suffix or host.endswith(f".{suffix}") for suffix in suffixes)
+
+
+def media_host_allowed(provider: str, host: str) -> bool:
+    normalized = normalize_host(host)
+    return normalized in MEDIA_EXACT_HOSTS_BY_PROVIDER.get(
+        provider, frozenset()
+    ) or _matches_suffix(
+        normalized,
+        MEDIA_SUFFIXES_BY_PROVIDER.get(provider, ()),
+    )
 
 
 def validate_http_url(

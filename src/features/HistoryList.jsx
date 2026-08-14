@@ -1,3 +1,5 @@
+import { providerLabel } from "../lib/platforms.js";
+
 function displayTime(value) {
   try {
     return new Intl.DateTimeFormat("zh-CN", {
@@ -30,7 +32,7 @@ export function HistoryList({
           <article className="history-row" key={entry.id}>
             <span className="status-dot" aria-hidden="true" />
             <span className="history-provider">
-              {entry.provider === "douyin" ? "抖音" : entry.provider}
+              {providerLabel(entry.provider)}
             </span>
             <strong title={entry.title}>{entry.title}</strong>
             <time dateTime={entry.createdAt}>{displayTime(entry.createdAt)}</time>

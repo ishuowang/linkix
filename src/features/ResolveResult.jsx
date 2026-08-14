@@ -4,6 +4,7 @@ import {
   DownloadSimple,
 } from "@phosphor-icons/react";
 import { absoluteMediaUrl } from "../lib/api.js";
+import { providerLabel } from "../lib/platforms.js";
 
 export function ResolveResult({ result, onCopy, isDemo }) {
   const variant = result.media.variants[0];
@@ -16,7 +17,9 @@ export function ResolveResult({ result, onCopy, isDemo }) {
     <section className="resolve-result" aria-label="解析结果">
       <div className="result-kicker">
         <span className="status-dot" aria-hidden="true" />
-        <span>{isDemo ? "抖音 · 示例结果" : "抖音 · 解析完成"}</span>
+        <span>
+          {providerLabel(result.provider)} · {isDemo ? "示例结果" : "解析完成"}
+        </span>
       </div>
       <div className="result-main">
         <div>

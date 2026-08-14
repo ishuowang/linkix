@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
 from urllib.parse import urljoin
 
 import requests
@@ -18,28 +17,11 @@ from ..security import (
     assert_public_resolution,
     validate_http_url,
 )
+from .base import MediaCandidate, ResolvedPost
 
 URL_RE = re.compile(r"https?://[^\s<>]+", re.IGNORECASE)
 AWEME_RE = re.compile(r"/(?:video|note)/(\d+)")
 TRAILING_PUNCTUATION = ".,，。!！?？)]}）】"
-
-
-@dataclass(frozen=True, slots=True)
-class MediaCandidate:
-    url: str
-    label: str
-    mime_type: str = "video/mp4"
-    size_bytes: int | None = None
-    bitrate: int = 0
-
-
-@dataclass(frozen=True, slots=True)
-class ResolvedPost:
-    provider_id: str
-    title: str
-    author: str
-    source_url: str
-    candidates: tuple[MediaCandidate, ...]
 
 
 def extract_share_url(text: str) -> str:
@@ -148,6 +130,7 @@ def select_video_candidates(detail: dict, limit: int = 8) -> tuple[MediaCandidat
 
 class DouyinProvider:
     name = "douyin"
+    input_hosts = DOUYIN_INPUT_HOSTS
 
     def __init__(
         self,
@@ -201,15 +184,25 @@ class DouyinProvider:
         self.dns_guard(parsed.hostname or "")
 
     def _limited_text(self, session: requests.Session, url: str) -> str:
-        self._guard_input_url(url)
-        with session.get(
-            url,
-            allow_redirects=False,
-            stream=True,
-            timeout=(15, 45),
-        ) as response:
-            response.raise_for_status()
-            return self._limited_response_text(response)
+        current = url
+        for _ in range(self.settings.max_redirects + 1):
+            self._guard_input_url(current)
+            with session.get(
+                current,
+                allow_redirects=False,
+                stream=True,
+                timeout=(15, 45),
+            ) as response:
+                if response.is_redirect or response.is_permanent_redirect:
+                    location = response.headers.get("Location")
+                    if not location:
+                        raise ParseFailed("抖音页面跳转缺少目标地址。")
+                    current = urljoin(current, location)
+                    validate_http_url(current, exact_hosts=DOUYIN_INPUT_HOSTS)
+                    continue
+                response.raise_for_status()
+                return self._limited_response_text(response)
+        raise ParseFailed("抖音页面跳转次数过多。")
 
     def _limited_response_text(self, response: requests.Response) -> str:
         chunks: list[bytes] = []
@@ -313,6 +306,7 @@ class DouyinProvider:
         author = str((detail.get("author") or {}).get("nickname") or "抖音用户").strip()
         title = str(detail.get("desc") or f"抖音作品 {aweme_id}").strip()
         return ResolvedPost(
+            provider=self.name,
             provider_id=aweme_id,
             title=title[:160],
             author=author[:80],

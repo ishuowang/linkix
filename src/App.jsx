@@ -17,6 +17,7 @@ import {
   loadHistory,
   recordHistory,
 } from "./lib/history.js";
+import { PLATFORM_STATUS } from "./lib/platforms.js";
 
 const EMPTY_STATE = {
   phase: "idle",
@@ -70,7 +71,7 @@ export function App() {
       setState({
         phase: "error",
         result: null,
-        error: "先粘贴一条抖音分享链接。",
+        error: "先粘贴一条受支持平台的分享链接。",
       });
       inputRef.current?.focus();
       return;
@@ -165,13 +166,18 @@ export function App() {
 
         <section className="hero" aria-labelledby="hero-title">
           <h1 id="hero-title">粘贴链接，拿走原片。</h1>
-          <p className="platforms">
-            <span className="platform-active">抖音</span>
-            <span>快手</span>
-            <span>小红书</span>
-            <span>B站</span>
-            <span>微博</span>
-            <span>TikTok</span>
+          <p className="platforms" aria-label="支持的平台">
+            {PLATFORM_STATUS.map((platform) => (
+              <span
+                key={platform.id}
+                className={`platform-${platform.status}`}
+                data-status={platform.status}
+                title={platform.status === "available" ? "已支持" : "计划中"}
+              >
+                {platform.label}
+                {platform.status === "planned" && <em>计划中</em>}
+              </span>
+            ))}
           </p>
 
           <form className="resolver" onSubmit={handleSubmit}>
@@ -190,7 +196,7 @@ export function App() {
                 ref={inputRef}
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
-                placeholder="分享链接…"
+                placeholder="粘贴任一已支持平台的分享链接…"
                 aria-label="分享链接"
                 autoComplete="off"
                 spellCheck="false"

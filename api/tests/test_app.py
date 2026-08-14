@@ -1,8 +1,12 @@
+import asyncio
+
+import pytest
 from fastapi.testclient import TestClient
 
-from linkix.app import create_app
+from linkix.app import CleanupFileResponse, create_app
 from linkix.config import Settings
 from linkix.providers.douyin import MediaCandidate, ResolvedPost
+from linkix.services.media import MediaArtifact
 
 
 class FakeProvider:
@@ -67,3 +71,31 @@ def test_cors_is_exact():
         },
     )
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_file_is_cleaned_when_client_send_fails(tmp_path):
+    path = tmp_path / "video.mp4"
+    path.write_bytes(b"\x00\x00\x00\x18ftypisom" + b"\x00" * 1024)
+    released = []
+    artifact = MediaArtifact(path, "video.mp4", lambda: released.append(True))
+    response = CleanupFileResponse(artifact, media_type="video/mp4")
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/api/v1/media/opaque",
+        "headers": [],
+    }
+
+    async def invoke():
+        async def receive():
+            return {"type": "http.disconnect"}
+
+        async def send(_message):
+            raise RuntimeError("client disconnected")
+
+        await response(scope, receive, send)
+
+    with pytest.raises(RuntimeError, match="client disconnected"):
+        asyncio.run(invoke())
+    assert not path.exists()
+    assert released == [True]

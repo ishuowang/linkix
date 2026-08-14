@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from ..errors import MediaExpired
-from ..providers.douyin import MediaCandidate, ResolvedPost
+from ..providers.base import MediaCandidate, ResolvedPost
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,6 +17,7 @@ class MediaLease:
     provider_id: str
     title: str
     author: str
+    source_url: str
     candidates: tuple[MediaCandidate, ...]
     expires_at_epoch: float
 
@@ -39,6 +40,7 @@ class MediaStore:
             provider_id=post.provider_id,
             title=post.title,
             author=post.author,
+            source_url=post.source_url,
             candidates=post.candidates,
             expires_at_epoch=now + self.ttl_seconds,
         )
