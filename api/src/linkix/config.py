@@ -36,6 +36,11 @@ class Settings:
     enable_parser_fallback: bool = False
     parser_api: str = "https://douyin.wtf/api/douyin/web/fetch_one_video"
     douyin_proxy: str | None = None
+    kuaishou_proxy: str | None = None
+    ytdlp_proxy: str | None = None
+    bilibili_proxy: str | None = None
+    ffmpeg_path: str = "ffmpeg"
+    ffprobe_path: str = "ffprobe"
     parser_trust_env: bool = True
 
     @classmethod
@@ -75,6 +80,11 @@ class Settings:
             ),
             parser_api=os.getenv("LINKIX_PARSER_API", defaults.parser_api),
             douyin_proxy=os.getenv("LINKIX_DOUYIN_PROXY") or None,
+            kuaishou_proxy=os.getenv("LINKIX_KUAISHOU_PROXY") or None,
+            ytdlp_proxy=os.getenv("LINKIX_YTDLP_PROXY") or None,
+            bilibili_proxy=os.getenv("LINKIX_BILIBILI_PROXY") or None,
+            ffmpeg_path=os.getenv("LINKIX_FFMPEG_PATH", defaults.ffmpeg_path),
+            ffprobe_path=os.getenv("LINKIX_FFPROBE_PATH", defaults.ffprobe_path),
             parser_trust_env=_as_bool(
                 os.getenv("LINKIX_PARSER_TRUST_ENV"),
                 defaults.parser_trust_env,

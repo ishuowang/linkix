@@ -7,12 +7,12 @@ import { DEMO_SOURCE } from "./lib/history.js";
 
 const API_RESULT = {
   request_id: "req-1",
-  provider: "douyin",
+  provider: "bilibili",
   media: {
-    provider_id: "7345678901234567890",
+    provider_id: "BV1xx411c7mD",
     title: "真实解析结果",
     author: { name: "测试作者" },
-    source_url: "https://www.douyin.com/video/7345678901234567890",
+    source_url: "https://www.bilibili.com/video/BV1xx411c7mD",
     variants: [
       {
         id: "opaque",
@@ -68,15 +68,44 @@ describe("Linkix resolver", () => {
 
     await user.type(
       screen.getByRole("textbox", { name: "分享链接" }),
-      "https://v.douyin.com/abc123/",
+      "https://www.bilibili.com/video/BV1xx411c7mD",
     );
     await user.click(screen.getByRole("button", { name: /解析/ }));
 
     expect(await screen.findAllByText("真实解析结果")).not.toHaveLength(0);
+    expect(screen.getByText("B站 · 解析完成")).toBeInTheDocument();
+    expect(screen.getByText("B站", { selector: ".history-provider" })).toBeInTheDocument();
     expect(window.fetch).toHaveBeenCalledWith(
       "/api/v1/resolve",
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  it("marks five platforms available and keeps TikTok on the roadmap", () => {
+    render(<App />);
+
+    for (const label of ["抖音", "快手", "小红书", "B站", "微博"]) {
+      expect(screen.getByText(label, { selector: ".platform-available" })).toHaveAttribute(
+        "data-status",
+        "available",
+      );
+    }
+    expect(screen.getByText("TikTok", { exact: false })).toHaveAttribute(
+      "data-status",
+      "planned",
+    );
+    expect(screen.getByText("计划中")).toBeInTheDocument();
+  });
+
+  it("asks for a supported platform link when the input is empty", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: /解析/ }));
+
+    expect(
+      screen.getByText("先粘贴一条受支持平台的分享链接。"),
+    ).toBeInTheDocument();
   });
 
   it("keeps the input and shows a safe API error", async () => {

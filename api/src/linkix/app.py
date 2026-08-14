@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import uuid
-from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from starlette.background import BackgroundTask
 
 from .config import Settings
 from .errors import LinkixError, RateLimited
@@ -19,8 +17,9 @@ from .models import (
     ResolveRequest,
     ResolveResponse,
 )
-from .providers.douyin import DouyinProvider
-from .services.media import MediaDownloader
+from .providers.base import Provider
+from .providers.registry import ProviderRegistry
+from .services.media import MediaArtifact, MediaDownloader
 from .services.rate_limit import SlidingWindowLimiter
 from .services.store import MediaStore
 
@@ -44,15 +43,27 @@ def problem_response(error: LinkixError, request_id: str) -> JSONResponse:
     )
 
 
+class CleanupFileResponse(FileResponse):
+    def __init__(self, artifact: MediaArtifact, **kwargs):
+        self.artifact = artifact
+        super().__init__(artifact.path, filename=artifact.filename, **kwargs)
+
+    async def __call__(self, scope, receive, send) -> None:
+        try:
+            await super().__call__(scope, receive, send)
+        finally:
+            self.artifact.cleanup()
+
+
 def create_app(
     *,
     settings: Settings | None = None,
-    provider: DouyinProvider | None = None,
+    provider: Provider | None = None,
     store: MediaStore | None = None,
     downloader: MediaDownloader | None = None,
 ) -> FastAPI:
     config = settings or Settings.from_env()
-    resolver = provider or DouyinProvider(config)
+    resolver = provider or ProviderRegistry.from_settings(config)
     media_store = store or MediaStore(config.media_handle_ttl_seconds)
     media_downloader = downloader or MediaDownloader(config)
     limiter = SlidingWindowLimiter(config.resolve_limit_per_minute)
@@ -106,10 +117,12 @@ def create_app(
     @api.post("/api/v1/resolve", response_model=ResolveResponse)
     def resolve(payload: ResolveRequest, request: Request) -> ResolveResponse:
         post = resolver.resolve(payload.text)
-        lease = media_store.create(resolver.name, post)
+        provider_name = post.provider or resolver.name
+        lease = media_store.create(provider_name, post)
+        candidate = post.candidates[0]
         return ResolveResponse(
             request_id=request.state.request_id,
-            provider=resolver.name,
+            provider=provider_name,
             media=ResolvedMediaOut(
                 provider_id=post.provider_id,
                 title=post.title,
@@ -118,9 +131,9 @@ def create_app(
                 variants=[
                     MediaVariantOut(
                         id=lease.handle,
-                        label="原片 MP4",
-                        mime_type="video/mp4",
-                        size_bytes=post.candidates[0].size_bytes,
+                        label=candidate.label,
+                        mime_type=candidate.mime_type,
+                        size_bytes=candidate.total_size_bytes,
                         download_url=f"/api/v1/media/{lease.handle}",
                         expires_at=lease.expires_at,
                     )
@@ -131,14 +144,16 @@ def create_app(
     @api.get("/api/v1/media/{handle}")
     def download(handle: str):
         lease = media_store.get(handle)
-        path, filename = media_downloader.download(lease)
-        return FileResponse(
-            path,
-            media_type="video/mp4",
-            filename=filename,
-            background=BackgroundTask(Path(path).unlink, missing_ok=True),
-            headers={"Cache-Control": "private, no-store"},
-        )
+        artifact = media_downloader.download(lease)
+        try:
+            return CleanupFileResponse(
+                artifact,
+                media_type="video/mp4",
+                headers={"Cache-Control": "private, no-store"},
+            )
+        except Exception:
+            artifact.cleanup()
+            raise
 
     return api
 

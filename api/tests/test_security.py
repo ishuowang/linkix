@@ -6,6 +6,7 @@ from linkix.errors import InvalidInput, UpstreamUnavailable
 from linkix.security import (
     DOUYIN_INPUT_HOSTS,
     assert_public_resolution,
+    media_host_allowed,
     validate_http_url,
 )
 
@@ -34,3 +35,10 @@ def test_public_dns_guard_rejects_private_resolution(monkeypatch):
     )
     with pytest.raises(UpstreamUnavailable):
         assert_public_resolution("v.douyin.com")
+
+
+def test_media_hosts_cannot_self_authorize_outside_provider_cdn():
+    assert media_host_allowed("xiaohongshu", "sns-video-v4.xhscdn.com")
+    assert not media_host_allowed("xiaohongshu", "public.example")
+    assert media_host_allowed("bilibili", "upos-hz-mirrorakam.akamaized.net")
+    assert not media_host_allowed("bilibili", "evil.upos-hz-mirrorakam.akamaized.net")
